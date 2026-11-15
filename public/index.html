@@ -24,56 +24,67 @@
 <body>
   <div class="logo">DEBRIS OPTICS</div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r169/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.min.js"></script>
   <script>
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.z = 7;
+    function start() {
+      if (typeof THREE === 'undefined') {
+        document.body.innerHTML += '<div style="color:#f66;position:fixed;bottom:20px;left:20px;font-family:monospace;">Three.js failed to load</div>';
+        return;
+      }
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x000000);
-    document.body.appendChild(renderer.domElement);
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.z = 7;
 
-    const portal = new THREE.Group();
-    scene.add(portal);
-
-    // Outer rings
-    for (let i = 0; i < 6; i++) {
-      const geo = new THREE.RingGeometry(1.6 + i * 0.38, 1.64 + i * 0.38, 128);
-      const mat = new THREE.MeshBasicMaterial({
-        color: 0x4da6ff,
-        transparent: true,
-        opacity: 0.25 + i * 0.05,
-        side: THREE.DoubleSide
-      });
-      const ring = new THREE.Mesh(geo, mat);
-      ring.rotation.x = Math.PI / 2.15;
-      portal.add(ring);
-    }
-
-    // Core
-    const core = new THREE.Mesh(
-      new THREE.CircleGeometry(1.45, 64),
-      new THREE.MeshBasicMaterial({ color: 0x001122 })
-    );
-    core.position.z = 0.05;
-    portal.add(core);
-
-    function animate() {
-      requestAnimationFrame(animate);
-      portal.rotation.z += 0.006;
-      portal.rotation.x = Math.sin(Date.now() * 0.0004) * 0.1;
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setClearColor(0x000000);
+      document.body.appendChild(renderer.domElement);
+
+      const portal = new THREE.Group();
+      scene.add(portal);
+
+      for (let i = 0; i < 6; i++) {
+        const geo = new THREE.RingGeometry(1.6 + i * 0.38, 1.64 + i * 0.38, 128);
+        const mat = new THREE.MeshBasicMaterial({
+          color: 0x4da6ff,
+          transparent: true,
+          opacity: 0.25 + i * 0.05,
+          side: THREE.DoubleSide
+        });
+        const ring = new THREE.Mesh(geo, mat);
+        ring.rotation.x = Math.PI / 2.15;
+        portal.add(ring);
+      }
+
+      const core = new THREE.Mesh(
+        new THREE.CircleGeometry(1.45, 64),
+        new THREE.MeshBasicMaterial({ color: 0x001122 })
+      );
+      core.position.z = 0.05;
+      portal.add(core);
+
+      function animate() {
+        requestAnimationFrame(animate);
+        portal.rotation.z += 0.006;
+        portal.rotation.x = Math.sin(Date.now() * 0.0004) * 0.1;
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', start);
+    } else {
+      start();
+    }
   </script>
 </body>
 </html>
