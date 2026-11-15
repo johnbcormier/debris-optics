@@ -10,11 +10,11 @@
     canvas { position: fixed; inset: 0; display: block; }
     .logo {
       position: fixed;
-      top: 32px;
-      right: 40px;
-      color: rgba(255,255,255,0.45);
+      top: 28px;
+      right: 36px;
+      color: rgba(200,230,255,0.6);
       font-size: 12px;
-      letter-spacing: 0.25em;
+      letter-spacing: 0.28em;
       z-index: 10;
       font-family: system-ui, sans-serif;
       pointer-events: none;
@@ -26,92 +26,96 @@
   <script src="/three.min.js"></script>
   <script>
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x000510, 0.012);
+    scene.fog = new THREE.FogExp2(0x000814, 0.018);
 
-    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 300);
-    camera.position.set(0, 0, 14);
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 400);
+    camera.position.set(0, 0, 16);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.4;
     document.body.appendChild(renderer.domElement);
 
     // Lighting
-    const ambient = new THREE.AmbientLight(0x0a1628, 0.6);
-    scene.add(ambient);
-    const keyLight = new THREE.PointLight(0x66ddff, 4, 40);
-    keyLight.position.set(0, 0, 3);
-    scene.add(keyLight);
-    const rimLight = new THREE.PointLight(0x4488ff, 2, 30);
-    rimLight.position.set(-4, 2, -2);
-    scene.add(rimLight);
+    scene.add(new THREE.AmbientLight(0x0a1a30, 0.5));
+    const coreLight = new THREE.PointLight(0x44ccff, 8, 50);
+    coreLight.position.set(0, 0, 1);
+    scene.add(coreLight);
+    const sideLight = new THREE.PointLight(0x2266ff, 3, 40);
+    sideLight.position.set(-6, 3, 2);
+    scene.add(sideLight);
 
     const portal = new THREE.Group();
     scene.add(portal);
 
-    // Core with better material
-    const core = new THREE.Mesh(
-      new THREE.SphereGeometry(1.4, 64, 64),
-      new THREE.MeshStandardMaterial({
-        color: 0x88ccff,
-        emissive: 0x2266aa,
-        emissiveIntensity: 0.8,
-        metalness: 0.3,
-        roughness: 0.2
-      })
-    );
-    portal.add(core);
+    // Vortex core (warped disc instead of sphere)
+    const vortexGeo = new THREE.CylinderGeometry(0.2, 2.8, 0.4, 64, 1, true);
+    const vortexMat = new THREE.MeshStandardMaterial({
+      color: 0x66eeff,
+      emissive: 0x2288cc,
+      emissiveIntensity: 1.2,
+      metalness: 0.4,
+      roughness: 0.15,
+      side: THREE.DoubleSide
+    });
+    const vortex = new THREE.Mesh(vortexGeo, vortexMat);
+    vortex.rotation.x = Math.PI / 2;
+    portal.add(vortex);
 
-    const hole = new THREE.Mesh(
-      new THREE.SphereGeometry(0.75, 32, 32),
+    // Dark singularity
+    const singularity = new THREE.Mesh(
+      new THREE.CircleGeometry(0.9, 64),
       new THREE.MeshBasicMaterial({ color: 0x000000 })
     );
-    hole.position.z = 0.15;
-    portal.add(hole);
+    singularity.position.z = 0.22;
+    portal.add(singularity);
 
-    // Layered rings with standard materials
-    for (let i = 0; i < 7; i++) {
-      const r = 2.4 + i * 0.6;
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(r, 0.04, 16, 100),
+    // Swirling energy ribbons
+    for (let i = 0; i < 5; i++) {
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-8, (Math.random()-0.5)*4, 0),
+        new THREE.Vector3(-2, (Math.random()-0.5)*2, 1),
+        new THREE.Vector3(0, 0, 0.5),
+        new THREE.Vector3(2, (Math.random()-0.5)*2, 1),
+        new THREE.Vector3(8, (Math.random()-0.5)*4, 0)
+      ]);
+      const tube = new THREE.Mesh(
+        new THREE.TubeGeometry(curve, 64, 0.06, 8, false),
         new THREE.MeshStandardMaterial({
-          color: new THREE.Color().setHSL(0.55 + i * 0.015, 0.7, 0.55),
-          emissive: new THREE.Color().setHSL(0.55, 0.9, 0.3),
-          emissiveIntensity: 0.4,
-          metalness: 0.6,
-          roughness: 0.3,
+          color: 0x44ddff,
+          emissive: 0x1199cc,
+          emissiveIntensity: 0.7,
           transparent: true,
-          opacity: 0.5
+          opacity: 0.6
         })
       );
-      ring.rotation.x = Math.PI / 2.1;
-      portal.add(ring);
+      portal.add(tube);
     }
 
-    // Particle field
-    const count = 1200;
-    const pos = new Float32Array(count * 3);
-    const col = new Float32Array(count * 3);
+    // Dense particle streams
+    const count = 2000;
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 4 + Math.random() * 18;
-      pos[i * 3] = Math.cos(angle) * radius;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 12;
-      pos[i * 3 + 2] = Math.sin(angle) * radius * 0.3;
-      const c = new THREE.Color().setHSL(0.55 + Math.random() * 0.08, 0.85, 0.6);
-      col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+      positions[i*3] = (Math.random() - 0.5) * 50;
+      positions[i*3+1] = (Math.random() - 0.5) * 16;
+      positions[i*3+2] = (Math.random() - 0.5) * 8;
+      const c = new THREE.Color().setHSL(0.52 + Math.random()*0.08, 0.9, 0.65);
+      colors[i*3] = c.r;
+      colors[i*3+1] = c.g;
+      colors[i*3+2] = c.b;
     }
     const pGeo = new THREE.BufferGeometry();
-    pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    pGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    pGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({
-      size: 0.06,
+      size: 0.07,
       vertexColors: true,
       transparent: true,
-      opacity: 0.7,
+      opacity: 0.75,
       blending: THREE.AdditiveBlending
     }));
     scene.add(particles);
@@ -119,14 +123,15 @@
     function animate() {
       requestAnimationFrame(animate);
       const t = Date.now() * 0.001;
-      portal.rotation.z = t * 0.12;
-      portal.rotation.y = Math.sin(t * 0.2) * 0.15;
-      keyLight.intensity = 3.5 + Math.sin(t * 2) * 0.8;
+
+      portal.rotation.z = t * 0.18;
+      vortex.rotation.y = t * 0.4;
+      coreLight.intensity = 7 + Math.sin(t * 3) * 1.5;
 
       const arr = particles.geometry.attributes.position.array;
       for (let i = 0; i < count; i++) {
-        arr[i * 3] += 0.03;
-        if (arr[i * 3] > 22) arr[i * 3] = -22;
+        arr[i*3] += 0.05;
+        if (arr[i*3] > 25) arr[i*3] = -25;
       }
       particles.geometry.attributes.position.needsUpdate = true;
 
