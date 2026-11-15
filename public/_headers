@@ -1,5 +1,8 @@
 /*
   Content-Type: text/html
 
-/three.min.js
+/*.js
+  Content-Type: application/javascript
+
+/three.module.js
   Content-Type: application/javascript
