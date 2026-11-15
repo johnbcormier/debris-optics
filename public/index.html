@@ -12,9 +12,9 @@
       position: fixed;
       top: 32px;
       right: 40px;
-      color: rgba(255,255,255,0.55);
+      color: rgba(255,255,255,0.5);
       font-size: 13px;
-      letter-spacing: 0.2em;
+      letter-spacing: 0.22em;
       z-index: 10;
       font-family: system-ui, sans-serif;
       pointer-events: none;
@@ -26,8 +26,10 @@
   <script src="/three.min.js"></script>
   <script>
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.z = 7;
+    scene.fog = new THREE.FogExp2(0x000000, 0.015);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.z = 12;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -35,33 +37,80 @@
     renderer.setClearColor(0x000000);
     document.body.appendChild(renderer.domElement);
 
+    // Portal group
     const portal = new THREE.Group();
     scene.add(portal);
 
-    for (let i = 0; i < 6; i++) {
-      const geo = new THREE.RingGeometry(1.6 + i * 0.38, 1.64 + i * 0.38, 128);
+    // Glowing core
+    const coreGeo = new THREE.SphereGeometry(1.2, 64, 64);
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0x66ccff });
+    const core = new THREE.Mesh(coreGeo, coreMat);
+    portal.add(core);
+
+    // Inner dark hole
+    const hole = new THREE.Mesh(
+      new THREE.SphereGeometry(0.7, 32, 32),
+      new THREE.MeshBasicMaterial({ color: 0x000000 })
+    );
+    hole.position.z = 0.1;
+    portal.add(hole);
+
+    // Multiple glowing rings
+    for (let i = 0; i < 8; i++) {
+      const radius = 2.2 + i * 0.55;
+      const geo = new THREE.RingGeometry(radius, radius + 0.08, 128);
       const mat = new THREE.MeshBasicMaterial({
-        color: 0x4da6ff,
+        color: new THREE.Color().setHSL(0.55 + i * 0.02, 0.8, 0.6),
         transparent: true,
-        opacity: 0.25 + i * 0.05,
+        opacity: 0.15 + (8 - i) * 0.04,
         side: THREE.DoubleSide
       });
       const ring = new THREE.Mesh(geo, mat);
-      ring.rotation.x = Math.PI / 2.15;
+      ring.rotation.x = Math.PI / 2.2;
       portal.add(ring);
     }
 
-    const core = new THREE.Mesh(
-      new THREE.CircleGeometry(1.45, 64),
-      new THREE.MeshBasicMaterial({ color: 0x001122 })
-    );
-    core.position.z = 0.05;
-    portal.add(core);
+    // Particle streams (binary-like)
+    const particleCount = 800;
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 40;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 20;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+      const c = new THREE.Color().setHSL(0.55 + Math.random() * 0.1, 0.9, 0.6);
+      colors[i * 3] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
+    }
+    const pGeo = new THREE.BufferGeometry();
+    pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    pGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const pMat = new THREE.PointsMaterial({ size: 0.08, vertexColors: true, transparent: true, opacity: 0.8 });
+    const particles = new THREE.Points(pGeo, pMat);
+    scene.add(particles);
+
+    // Soft ambient + point light for glow
+    scene.add(new THREE.AmbientLight(0x112244, 0.4));
+    const light = new THREE.PointLight(0x66ccff, 2, 30);
+    light.position.set(0, 0, 2);
+    portal.add(light);
 
     function animate() {
       requestAnimationFrame(animate);
-      portal.rotation.z += 0.006;
-      portal.rotation.x = Math.sin(Date.now() * 0.0004) * 0.1;
+      const t = Date.now() * 0.001;
+
+      portal.rotation.z = t * 0.15;
+      portal.rotation.x = Math.sin(t * 0.3) * 0.12;
+
+      // Move particles toward center then out
+      const pos = particles.geometry.attributes.position.array;
+      for (let i = 0; i < particleCount; i++) {
+        pos[i * 3] += 0.04;
+        if (pos[i * 3] > 20) pos[i * 3] = -20;
+      }
+      particles.geometry.attributes.position.needsUpdate = true;
+
       renderer.render(scene, camera);
     }
     animate();
