@@ -23,10 +23,8 @@
 </head>
 <body>
   <div class="logo">DEBRIS OPTICS</div>
-
-  <script type="module">
-    import * as THREE from '/three.module.js';
-
+  <script src="/three.min.js"></script>
+  <script>
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
     camera.position.z = 7;
